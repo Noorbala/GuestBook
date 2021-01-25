@@ -22,7 +22,6 @@ import com.liferay.docs.guestbook.service.persistence.GuestbookEntryPersistence;
 import com.liferay.docs.guestbook.service.persistence.impl.constants.GBPersistenceConstants;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.configuration.Configuration;
-import com.liferay.portal.kernel.dao.orm.ArgumentsResolver;
 import com.liferay.portal.kernel.dao.orm.EntityCache;
 import com.liferay.portal.kernel.dao.orm.FinderCache;
 import com.liferay.portal.kernel.dao.orm.FinderPath;
@@ -33,12 +32,10 @@ import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.dao.orm.SessionFactory;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
-import com.liferay.portal.kernel.model.BaseModel;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.persistence.impl.BasePersistenceImpl;
-import com.liferay.portal.kernel.util.MapUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.ProxyUtil;
 import com.liferay.portal.kernel.util.SetUtil;
@@ -51,17 +48,13 @@ import java.lang.reflect.InvocationHandler;
 
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 import javax.sql.DataSource;
 
-import org.osgi.framework.BundleContext;
-import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
@@ -2031,6 +2024,8 @@ public class GuestbookEntryPersistenceImpl
 				guestbookEntry.getUuid(), guestbookEntry.getGroupId()
 			},
 			guestbookEntry);
+
+		guestbookEntry.resetOriginalValues();
 	}
 
 	/**
@@ -2046,6 +2041,9 @@ public class GuestbookEntryPersistenceImpl
 						null) {
 
 				cacheResult(guestbookEntry);
+			}
+			else {
+				guestbookEntry.resetOriginalValues();
 			}
 		}
 	}
@@ -2075,13 +2073,26 @@ public class GuestbookEntryPersistenceImpl
 	 */
 	@Override
 	public void clearCache(GuestbookEntry guestbookEntry) {
-		entityCache.removeResult(GuestbookEntryImpl.class, guestbookEntry);
+		entityCache.removeResult(
+			GuestbookEntryImpl.class, guestbookEntry.getPrimaryKey());
+
+		finderCache.clearCache(FINDER_CLASS_NAME_LIST_WITH_PAGINATION);
+		finderCache.clearCache(FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION);
+
+		clearUniqueFindersCache((GuestbookEntryModelImpl)guestbookEntry, true);
 	}
 
 	@Override
 	public void clearCache(List<GuestbookEntry> guestbookEntries) {
+		finderCache.clearCache(FINDER_CLASS_NAME_LIST_WITH_PAGINATION);
+		finderCache.clearCache(FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION);
+
 		for (GuestbookEntry guestbookEntry : guestbookEntries) {
-			entityCache.removeResult(GuestbookEntryImpl.class, guestbookEntry);
+			entityCache.removeResult(
+				GuestbookEntryImpl.class, guestbookEntry.getPrimaryKey());
+
+			clearUniqueFindersCache(
+				(GuestbookEntryModelImpl)guestbookEntry, true);
 		}
 	}
 
@@ -2108,6 +2119,32 @@ public class GuestbookEntryPersistenceImpl
 			_finderPathCountByUUID_G, args, Long.valueOf(1), false);
 		finderCache.putResult(
 			_finderPathFetchByUUID_G, args, guestbookEntryModelImpl, false);
+	}
+
+	protected void clearUniqueFindersCache(
+		GuestbookEntryModelImpl guestbookEntryModelImpl, boolean clearCurrent) {
+
+		if (clearCurrent) {
+			Object[] args = new Object[] {
+				guestbookEntryModelImpl.getUuid(),
+				guestbookEntryModelImpl.getGroupId()
+			};
+
+			finderCache.removeResult(_finderPathCountByUUID_G, args);
+			finderCache.removeResult(_finderPathFetchByUUID_G, args);
+		}
+
+		if ((guestbookEntryModelImpl.getColumnBitmask() &
+			 _finderPathFetchByUUID_G.getColumnBitmask()) != 0) {
+
+			Object[] args = new Object[] {
+				guestbookEntryModelImpl.getOriginalUuid(),
+				guestbookEntryModelImpl.getOriginalGroupId()
+			};
+
+			finderCache.removeResult(_finderPathCountByUUID_G, args);
+			finderCache.removeResult(_finderPathFetchByUUID_G, args);
+		}
 	}
 
 	/**
@@ -2277,8 +2314,10 @@ public class GuestbookEntryPersistenceImpl
 		try {
 			session = openSession();
 
-			if (isNew) {
+			if (guestbookEntry.isNew()) {
 				session.save(guestbookEntry);
+
+				guestbookEntry.setNew(false);
 			}
 			else {
 				guestbookEntry = (GuestbookEntry)session.merge(guestbookEntry);
@@ -2291,14 +2330,110 @@ public class GuestbookEntryPersistenceImpl
 			closeSession(session);
 		}
 
-		entityCache.putResult(
-			GuestbookEntryImpl.class, guestbookEntryModelImpl, false, true);
-
-		cacheUniqueFindersCache(guestbookEntryModelImpl);
+		finderCache.clearCache(FINDER_CLASS_NAME_LIST_WITH_PAGINATION);
 
 		if (isNew) {
-			guestbookEntry.setNew(false);
+			Object[] args = new Object[] {guestbookEntryModelImpl.getUuid()};
+
+			finderCache.removeResult(_finderPathCountByUuid, args);
+			finderCache.removeResult(
+				_finderPathWithoutPaginationFindByUuid, args);
+
+			args = new Object[] {
+				guestbookEntryModelImpl.getUuid(),
+				guestbookEntryModelImpl.getCompanyId()
+			};
+
+			finderCache.removeResult(_finderPathCountByUuid_C, args);
+			finderCache.removeResult(
+				_finderPathWithoutPaginationFindByUuid_C, args);
+
+			args = new Object[] {
+				guestbookEntryModelImpl.getGroupId(),
+				guestbookEntryModelImpl.getGuestbookId()
+			};
+
+			finderCache.removeResult(_finderPathCountByG_G, args);
+			finderCache.removeResult(
+				_finderPathWithoutPaginationFindByG_G, args);
+
+			finderCache.removeResult(_finderPathCountAll, FINDER_ARGS_EMPTY);
+			finderCache.removeResult(
+				_finderPathWithoutPaginationFindAll, FINDER_ARGS_EMPTY);
 		}
+		else {
+			if ((guestbookEntryModelImpl.getColumnBitmask() &
+				 _finderPathWithoutPaginationFindByUuid.getColumnBitmask()) !=
+					 0) {
+
+				Object[] args = new Object[] {
+					guestbookEntryModelImpl.getOriginalUuid()
+				};
+
+				finderCache.removeResult(_finderPathCountByUuid, args);
+				finderCache.removeResult(
+					_finderPathWithoutPaginationFindByUuid, args);
+
+				args = new Object[] {guestbookEntryModelImpl.getUuid()};
+
+				finderCache.removeResult(_finderPathCountByUuid, args);
+				finderCache.removeResult(
+					_finderPathWithoutPaginationFindByUuid, args);
+			}
+
+			if ((guestbookEntryModelImpl.getColumnBitmask() &
+				 _finderPathWithoutPaginationFindByUuid_C.getColumnBitmask()) !=
+					 0) {
+
+				Object[] args = new Object[] {
+					guestbookEntryModelImpl.getOriginalUuid(),
+					guestbookEntryModelImpl.getOriginalCompanyId()
+				};
+
+				finderCache.removeResult(_finderPathCountByUuid_C, args);
+				finderCache.removeResult(
+					_finderPathWithoutPaginationFindByUuid_C, args);
+
+				args = new Object[] {
+					guestbookEntryModelImpl.getUuid(),
+					guestbookEntryModelImpl.getCompanyId()
+				};
+
+				finderCache.removeResult(_finderPathCountByUuid_C, args);
+				finderCache.removeResult(
+					_finderPathWithoutPaginationFindByUuid_C, args);
+			}
+
+			if ((guestbookEntryModelImpl.getColumnBitmask() &
+				 _finderPathWithoutPaginationFindByG_G.getColumnBitmask()) !=
+					 0) {
+
+				Object[] args = new Object[] {
+					guestbookEntryModelImpl.getOriginalGroupId(),
+					guestbookEntryModelImpl.getOriginalGuestbookId()
+				};
+
+				finderCache.removeResult(_finderPathCountByG_G, args);
+				finderCache.removeResult(
+					_finderPathWithoutPaginationFindByG_G, args);
+
+				args = new Object[] {
+					guestbookEntryModelImpl.getGroupId(),
+					guestbookEntryModelImpl.getGuestbookId()
+				};
+
+				finderCache.removeResult(_finderPathCountByG_G, args);
+				finderCache.removeResult(
+					_finderPathWithoutPaginationFindByG_G, args);
+			}
+		}
+
+		entityCache.putResult(
+			GuestbookEntryImpl.class, guestbookEntry.getPrimaryKey(),
+			guestbookEntry, false);
+
+		clearUniqueFindersCache(guestbookEntryModelImpl, false);
+		cacheUniqueFindersCache(guestbookEntryModelImpl);
 
 		guestbookEntry.resetOriginalValues();
 
@@ -2564,104 +2699,98 @@ public class GuestbookEntryPersistenceImpl
 	 * Initializes the guestbook entry persistence.
 	 */
 	@Activate
-	public void activate(BundleContext bundleContext) {
-		_bundleContext = bundleContext;
+	public void activate() {
+		_finderPathWithPaginationFindAll = new FinderPath(
+			GuestbookEntryImpl.class, FINDER_CLASS_NAME_LIST_WITH_PAGINATION,
+			"findAll", new String[0]);
 
-		_argumentsResolverServiceRegistration = _bundleContext.registerService(
-			ArgumentsResolver.class, new GuestbookEntryModelArgumentsResolver(),
-			MapUtil.singletonDictionary(
-				"model.class.name", GuestbookEntry.class.getName()));
+		_finderPathWithoutPaginationFindAll = new FinderPath(
+			GuestbookEntryImpl.class, FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION,
+			"findAll", new String[0]);
 
-		_finderPathWithPaginationFindAll = _createFinderPath(
-			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findAll", new String[0],
-			new String[0], true);
+		_finderPathCountAll = new FinderPath(
+			Long.class, FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countAll",
+			new String[0]);
 
-		_finderPathWithoutPaginationFindAll = _createFinderPath(
-			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "findAll", new String[0],
-			new String[0], true);
-
-		_finderPathCountAll = _createFinderPath(
-			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countAll",
-			new String[0], new String[0], false);
-
-		_finderPathWithPaginationFindByUuid = _createFinderPath(
-			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByUuid",
+		_finderPathWithPaginationFindByUuid = new FinderPath(
+			GuestbookEntryImpl.class, FINDER_CLASS_NAME_LIST_WITH_PAGINATION,
+			"findByUuid",
 			new String[] {
 				String.class.getName(), Integer.class.getName(),
 				Integer.class.getName(), OrderByComparator.class.getName()
-			},
-			new String[] {"uuid_"}, true);
+			});
 
-		_finderPathWithoutPaginationFindByUuid = _createFinderPath(
-			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "findByUuid",
-			new String[] {String.class.getName()}, new String[] {"uuid_"},
-			true);
+		_finderPathWithoutPaginationFindByUuid = new FinderPath(
+			GuestbookEntryImpl.class, FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION,
+			"findByUuid", new String[] {String.class.getName()},
+			GuestbookEntryModelImpl.UUID_COLUMN_BITMASK |
+			GuestbookEntryModelImpl.CREATEDATE_COLUMN_BITMASK);
 
-		_finderPathCountByUuid = _createFinderPath(
-			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByUuid",
-			new String[] {String.class.getName()}, new String[] {"uuid_"},
-			false);
+		_finderPathCountByUuid = new FinderPath(
+			Long.class, FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION,
+			"countByUuid", new String[] {String.class.getName()});
 
-		_finderPathFetchByUUID_G = _createFinderPath(
-			FINDER_CLASS_NAME_ENTITY, "fetchByUUID_G",
+		_finderPathFetchByUUID_G = new FinderPath(
+			GuestbookEntryImpl.class, FINDER_CLASS_NAME_ENTITY, "fetchByUUID_G",
 			new String[] {String.class.getName(), Long.class.getName()},
-			new String[] {"uuid_", "groupId"}, true);
+			GuestbookEntryModelImpl.UUID_COLUMN_BITMASK |
+			GuestbookEntryModelImpl.GROUPID_COLUMN_BITMASK);
 
-		_finderPathCountByUUID_G = _createFinderPath(
-			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByUUID_G",
-			new String[] {String.class.getName(), Long.class.getName()},
-			new String[] {"uuid_", "groupId"}, false);
+		_finderPathCountByUUID_G = new FinderPath(
+			Long.class, FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION,
+			"countByUUID_G",
+			new String[] {String.class.getName(), Long.class.getName()});
 
-		_finderPathWithPaginationFindByUuid_C = _createFinderPath(
-			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByUuid_C",
+		_finderPathWithPaginationFindByUuid_C = new FinderPath(
+			GuestbookEntryImpl.class, FINDER_CLASS_NAME_LIST_WITH_PAGINATION,
+			"findByUuid_C",
 			new String[] {
 				String.class.getName(), Long.class.getName(),
 				Integer.class.getName(), Integer.class.getName(),
 				OrderByComparator.class.getName()
-			},
-			new String[] {"uuid_", "companyId"}, true);
+			});
 
-		_finderPathWithoutPaginationFindByUuid_C = _createFinderPath(
-			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "findByUuid_C",
+		_finderPathWithoutPaginationFindByUuid_C = new FinderPath(
+			GuestbookEntryImpl.class, FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION,
+			"findByUuid_C",
 			new String[] {String.class.getName(), Long.class.getName()},
-			new String[] {"uuid_", "companyId"}, true);
+			GuestbookEntryModelImpl.UUID_COLUMN_BITMASK |
+			GuestbookEntryModelImpl.COMPANYID_COLUMN_BITMASK |
+			GuestbookEntryModelImpl.CREATEDATE_COLUMN_BITMASK);
 
-		_finderPathCountByUuid_C = _createFinderPath(
-			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByUuid_C",
-			new String[] {String.class.getName(), Long.class.getName()},
-			new String[] {"uuid_", "companyId"}, false);
+		_finderPathCountByUuid_C = new FinderPath(
+			Long.class, FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION,
+			"countByUuid_C",
+			new String[] {String.class.getName(), Long.class.getName()});
 
-		_finderPathWithPaginationFindByG_G = _createFinderPath(
-			FINDER_CLASS_NAME_LIST_WITH_PAGINATION, "findByG_G",
+		_finderPathWithPaginationFindByG_G = new FinderPath(
+			GuestbookEntryImpl.class, FINDER_CLASS_NAME_LIST_WITH_PAGINATION,
+			"findByG_G",
 			new String[] {
 				Long.class.getName(), Long.class.getName(),
 				Integer.class.getName(), Integer.class.getName(),
 				OrderByComparator.class.getName()
-			},
-			new String[] {"groupId", "guestbookId"}, true);
+			});
 
-		_finderPathWithoutPaginationFindByG_G = _createFinderPath(
-			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "findByG_G",
+		_finderPathWithoutPaginationFindByG_G = new FinderPath(
+			GuestbookEntryImpl.class, FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION,
+			"findByG_G",
 			new String[] {Long.class.getName(), Long.class.getName()},
-			new String[] {"groupId", "guestbookId"}, true);
+			GuestbookEntryModelImpl.GROUPID_COLUMN_BITMASK |
+			GuestbookEntryModelImpl.GUESTBOOKID_COLUMN_BITMASK |
+			GuestbookEntryModelImpl.CREATEDATE_COLUMN_BITMASK);
 
-		_finderPathCountByG_G = _createFinderPath(
-			FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByG_G",
-			new String[] {Long.class.getName(), Long.class.getName()},
-			new String[] {"groupId", "guestbookId"}, false);
+		_finderPathCountByG_G = new FinderPath(
+			Long.class, FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION, "countByG_G",
+			new String[] {Long.class.getName(), Long.class.getName()});
 	}
 
 	@Deactivate
 	public void deactivate() {
 		entityCache.removeCache(GuestbookEntryImpl.class.getName());
-
-		_argumentsResolverServiceRegistration.unregister();
-
-		for (ServiceRegistration<FinderPath> serviceRegistration :
-				_serviceRegistrations) {
-
-			serviceRegistration.unregister();
-		}
+		finderCache.removeCache(FINDER_CLASS_NAME_ENTITY);
+		finderCache.removeCache(FINDER_CLASS_NAME_LIST_WITH_PAGINATION);
+		finderCache.removeCache(FINDER_CLASS_NAME_LIST_WITHOUT_PAGINATION);
 	}
 
 	@Override
@@ -2689,8 +2818,6 @@ public class GuestbookEntryPersistenceImpl
 	public void setSessionFactory(SessionFactory sessionFactory) {
 		super.setSessionFactory(sessionFactory);
 	}
-
-	private BundleContext _bundleContext;
 
 	@Reference
 	protected EntityCache entityCache;
@@ -2731,107 +2858,6 @@ public class GuestbookEntryPersistenceImpl
 		catch (ClassNotFoundException classNotFoundException) {
 			throw new ExceptionInInitializerError(classNotFoundException);
 		}
-	}
-
-	private FinderPath _createFinderPath(
-		String cacheName, String methodName, String[] params,
-		String[] columnNames, boolean baseModelResult) {
-
-		FinderPath finderPath = new FinderPath(
-			cacheName, methodName, params, columnNames, baseModelResult);
-
-		if (!cacheName.equals(FINDER_CLASS_NAME_LIST_WITH_PAGINATION)) {
-			_serviceRegistrations.add(
-				_bundleContext.registerService(
-					FinderPath.class, finderPath,
-					MapUtil.singletonDictionary("cache.name", cacheName)));
-		}
-
-		return finderPath;
-	}
-
-	private Set<ServiceRegistration<FinderPath>> _serviceRegistrations =
-		new HashSet<>();
-	private ServiceRegistration<ArgumentsResolver>
-		_argumentsResolverServiceRegistration;
-
-	private static class GuestbookEntryModelArgumentsResolver
-		implements ArgumentsResolver {
-
-		@Override
-		public Object[] getArguments(
-			FinderPath finderPath, BaseModel<?> baseModel, boolean checkColumn,
-			boolean original) {
-
-			String[] columnNames = finderPath.getColumnNames();
-
-			if ((columnNames == null) || (columnNames.length == 0)) {
-				if (baseModel.isNew()) {
-					return FINDER_ARGS_EMPTY;
-				}
-
-				return null;
-			}
-
-			GuestbookEntryModelImpl guestbookEntryModelImpl =
-				(GuestbookEntryModelImpl)baseModel;
-
-			long columnBitmask = guestbookEntryModelImpl.getColumnBitmask();
-
-			if (!checkColumn || (columnBitmask == 0)) {
-				return _getValue(
-					guestbookEntryModelImpl, columnNames, original);
-			}
-
-			Long finderPathColumnBitmask = _finderPathColumnBitmasksCache.get(
-				finderPath);
-
-			if (finderPathColumnBitmask == null) {
-				finderPathColumnBitmask = 0L;
-
-				for (String columnName : columnNames) {
-					finderPathColumnBitmask |=
-						guestbookEntryModelImpl.getColumnBitmask(columnName);
-				}
-
-				_finderPathColumnBitmasksCache.put(
-					finderPath, finderPathColumnBitmask);
-			}
-
-			if ((columnBitmask & finderPathColumnBitmask) != 0) {
-				return _getValue(
-					guestbookEntryModelImpl, columnNames, original);
-			}
-
-			return null;
-		}
-
-		private Object[] _getValue(
-			GuestbookEntryModelImpl guestbookEntryModelImpl,
-			String[] columnNames, boolean original) {
-
-			Object[] arguments = new Object[columnNames.length];
-
-			for (int i = 0; i < arguments.length; i++) {
-				String columnName = columnNames[i];
-
-				if (original) {
-					arguments[i] =
-						guestbookEntryModelImpl.getColumnOriginalValue(
-							columnName);
-				}
-				else {
-					arguments[i] = guestbookEntryModelImpl.getColumnValue(
-						columnName);
-				}
-			}
-
-			return arguments;
-		}
-
-		private static Map<FinderPath, Long> _finderPathColumnBitmasksCache =
-			new ConcurrentHashMap<>();
-
 	}
 
 }

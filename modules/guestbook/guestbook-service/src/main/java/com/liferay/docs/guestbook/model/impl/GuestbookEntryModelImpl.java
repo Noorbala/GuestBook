@@ -127,35 +127,14 @@ public class GuestbookEntryModelImpl
 
 	public static final String TX_MANAGER = "liferayTransactionManager";
 
-	/**
-	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)
-	 */
-	@Deprecated
 	public static final long COMPANYID_COLUMN_BITMASK = 1L;
 
-	/**
-	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)
-	 */
-	@Deprecated
 	public static final long GROUPID_COLUMN_BITMASK = 2L;
 
-	/**
-	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)
-	 */
-	@Deprecated
 	public static final long GUESTBOOKID_COLUMN_BITMASK = 4L;
 
-	/**
-	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)
-	 */
-	@Deprecated
 	public static final long UUID_COLUMN_BITMASK = 8L;
 
-	/**
-	 * @deprecated As of Athanasius (7.3.x), replaced by {@link
-	 *		#getColumnBitmask(String)
-	 */
-	@Deprecated
 	public static final long CREATEDATE_COLUMN_BITMASK = 16L;
 
 	/**
@@ -449,10 +428,6 @@ public class GuestbookEntryModelImpl
 
 	@Override
 	public void setMvccVersion(long mvccVersion) {
-		if (_columnOriginalValues == Collections.EMPTY_MAP) {
-			_setColumnOriginalValues();
-		}
-
 		_mvccVersion = mvccVersion;
 	}
 
@@ -469,20 +444,17 @@ public class GuestbookEntryModelImpl
 
 	@Override
 	public void setUuid(String uuid) {
-		if (_columnOriginalValues == Collections.EMPTY_MAP) {
-			_setColumnOriginalValues();
+		_columnBitmask |= UUID_COLUMN_BITMASK;
+
+		if (_originalUuid == null) {
+			_originalUuid = _uuid;
 		}
 
 		_uuid = uuid;
 	}
 
-	/**
-	 * @deprecated As of Athanasius (7.3.x), replaced by {@link
-	 *             #getColumnOriginalValue(String)}
-	 */
-	@Deprecated
 	public String getOriginalUuid() {
-		return getColumnOriginalValue("uuid_");
+		return GetterUtil.getString(_originalUuid);
 	}
 
 	@JSON
@@ -493,10 +465,6 @@ public class GuestbookEntryModelImpl
 
 	@Override
 	public void setEntryId(long entryId) {
-		if (_columnOriginalValues == Collections.EMPTY_MAP) {
-			_setColumnOriginalValues();
-		}
-
 		_entryId = entryId;
 	}
 
@@ -513,10 +481,6 @@ public class GuestbookEntryModelImpl
 
 	@Override
 	public void setName(String name) {
-		if (_columnOriginalValues == Collections.EMPTY_MAP) {
-			_setColumnOriginalValues();
-		}
-
 		_name = name;
 	}
 
@@ -533,10 +497,6 @@ public class GuestbookEntryModelImpl
 
 	@Override
 	public void setEmail(String email) {
-		if (_columnOriginalValues == Collections.EMPTY_MAP) {
-			_setColumnOriginalValues();
-		}
-
 		_email = email;
 	}
 
@@ -553,10 +513,6 @@ public class GuestbookEntryModelImpl
 
 	@Override
 	public void setMessage(String message) {
-		if (_columnOriginalValues == Collections.EMPTY_MAP) {
-			_setColumnOriginalValues();
-		}
-
 		_message = message;
 	}
 
@@ -568,21 +524,19 @@ public class GuestbookEntryModelImpl
 
 	@Override
 	public void setGuestbookId(long guestbookId) {
-		if (_columnOriginalValues == Collections.EMPTY_MAP) {
-			_setColumnOriginalValues();
+		_columnBitmask |= GUESTBOOKID_COLUMN_BITMASK;
+
+		if (!_setOriginalGuestbookId) {
+			_setOriginalGuestbookId = true;
+
+			_originalGuestbookId = _guestbookId;
 		}
 
 		_guestbookId = guestbookId;
 	}
 
-	/**
-	 * @deprecated As of Athanasius (7.3.x), replaced by {@link
-	 *             #getColumnOriginalValue(String)}
-	 */
-	@Deprecated
 	public long getOriginalGuestbookId() {
-		return GetterUtil.getLong(
-			this.<Long>getColumnOriginalValue("guestbookId"));
+		return _originalGuestbookId;
 	}
 
 	@JSON
@@ -593,20 +547,19 @@ public class GuestbookEntryModelImpl
 
 	@Override
 	public void setGroupId(long groupId) {
-		if (_columnOriginalValues == Collections.EMPTY_MAP) {
-			_setColumnOriginalValues();
+		_columnBitmask |= GROUPID_COLUMN_BITMASK;
+
+		if (!_setOriginalGroupId) {
+			_setOriginalGroupId = true;
+
+			_originalGroupId = _groupId;
 		}
 
 		_groupId = groupId;
 	}
 
-	/**
-	 * @deprecated As of Athanasius (7.3.x), replaced by {@link
-	 *             #getColumnOriginalValue(String)}
-	 */
-	@Deprecated
 	public long getOriginalGroupId() {
-		return GetterUtil.getLong(this.<Long>getColumnOriginalValue("groupId"));
+		return _originalGroupId;
 	}
 
 	@JSON
@@ -617,21 +570,19 @@ public class GuestbookEntryModelImpl
 
 	@Override
 	public void setCompanyId(long companyId) {
-		if (_columnOriginalValues == Collections.EMPTY_MAP) {
-			_setColumnOriginalValues();
+		_columnBitmask |= COMPANYID_COLUMN_BITMASK;
+
+		if (!_setOriginalCompanyId) {
+			_setOriginalCompanyId = true;
+
+			_originalCompanyId = _companyId;
 		}
 
 		_companyId = companyId;
 	}
 
-	/**
-	 * @deprecated As of Athanasius (7.3.x), replaced by {@link
-	 *             #getColumnOriginalValue(String)}
-	 */
-	@Deprecated
 	public long getOriginalCompanyId() {
-		return GetterUtil.getLong(
-			this.<Long>getColumnOriginalValue("companyId"));
+		return _originalCompanyId;
 	}
 
 	@JSON
@@ -642,10 +593,6 @@ public class GuestbookEntryModelImpl
 
 	@Override
 	public void setUserId(long userId) {
-		if (_columnOriginalValues == Collections.EMPTY_MAP) {
-			_setColumnOriginalValues();
-		}
-
 		_userId = userId;
 	}
 
@@ -678,10 +625,6 @@ public class GuestbookEntryModelImpl
 
 	@Override
 	public void setUserName(String userName) {
-		if (_columnOriginalValues == Collections.EMPTY_MAP) {
-			_setColumnOriginalValues();
-		}
-
 		_userName = userName;
 	}
 
@@ -693,9 +636,7 @@ public class GuestbookEntryModelImpl
 
 	@Override
 	public void setCreateDate(Date createDate) {
-		if (_columnOriginalValues == Collections.EMPTY_MAP) {
-			_setColumnOriginalValues();
-		}
+		_columnBitmask = -1L;
 
 		_createDate = createDate;
 	}
@@ -714,10 +655,6 @@ public class GuestbookEntryModelImpl
 	public void setModifiedDate(Date modifiedDate) {
 		_setModifiedDate = true;
 
-		if (_columnOriginalValues == Collections.EMPTY_MAP) {
-			_setColumnOriginalValues();
-		}
-
 		_modifiedDate = modifiedDate;
 	}
 
@@ -729,10 +666,6 @@ public class GuestbookEntryModelImpl
 
 	@Override
 	public void setStatus(int status) {
-		if (_columnOriginalValues == Collections.EMPTY_MAP) {
-			_setColumnOriginalValues();
-		}
-
 		_status = status;
 	}
 
@@ -744,10 +677,6 @@ public class GuestbookEntryModelImpl
 
 	@Override
 	public void setStatusByUserId(long statusByUserId) {
-		if (_columnOriginalValues == Collections.EMPTY_MAP) {
-			_setColumnOriginalValues();
-		}
-
 		_statusByUserId = statusByUserId;
 	}
 
@@ -780,10 +709,6 @@ public class GuestbookEntryModelImpl
 
 	@Override
 	public void setStatusByUserName(String statusByUserName) {
-		if (_columnOriginalValues == Collections.EMPTY_MAP) {
-			_setColumnOriginalValues();
-		}
-
 		_statusByUserName = statusByUserName;
 	}
 
@@ -795,10 +720,6 @@ public class GuestbookEntryModelImpl
 
 	@Override
 	public void setStatusDate(Date statusDate) {
-		if (_columnOriginalValues == Collections.EMPTY_MAP) {
-			_setColumnOriginalValues();
-		}
-
 		_statusDate = statusDate;
 	}
 
@@ -889,24 +810,6 @@ public class GuestbookEntryModelImpl
 	}
 
 	public long getColumnBitmask() {
-		if (_columnBitmask > 0) {
-			return _columnBitmask;
-		}
-
-		if ((_columnOriginalValues == null) ||
-			(_columnOriginalValues == Collections.EMPTY_MAP)) {
-
-			return 0;
-		}
-
-		for (Map.Entry<String, Object> entry :
-				_columnOriginalValues.entrySet()) {
-
-			if (entry.getValue() != getColumnValue(entry.getKey())) {
-				_columnBitmask |= _columnBitmasks.get(entry.getKey());
-			}
-		}
-
 		return _columnBitmask;
 	}
 
@@ -1028,11 +931,28 @@ public class GuestbookEntryModelImpl
 
 	@Override
 	public void resetOriginalValues() {
-		_columnOriginalValues = Collections.emptyMap();
+		GuestbookEntryModelImpl guestbookEntryModelImpl = this;
 
-		_setModifiedDate = false;
+		guestbookEntryModelImpl._originalUuid = guestbookEntryModelImpl._uuid;
 
-		_columnBitmask = 0;
+		guestbookEntryModelImpl._originalGuestbookId =
+			guestbookEntryModelImpl._guestbookId;
+
+		guestbookEntryModelImpl._setOriginalGuestbookId = false;
+
+		guestbookEntryModelImpl._originalGroupId =
+			guestbookEntryModelImpl._groupId;
+
+		guestbookEntryModelImpl._setOriginalGroupId = false;
+
+		guestbookEntryModelImpl._originalCompanyId =
+			guestbookEntryModelImpl._companyId;
+
+		guestbookEntryModelImpl._setOriginalCompanyId = false;
+
+		guestbookEntryModelImpl._setModifiedDate = false;
+
+		guestbookEntryModelImpl._columnBitmask = 0;
 	}
 
 	@Override
@@ -1140,7 +1060,7 @@ public class GuestbookEntryModelImpl
 			getAttributeGetterFunctions();
 
 		StringBundler sb = new StringBundler(
-			(4 * attributeGetterFunctions.size()) + 2);
+			4 * attributeGetterFunctions.size() + 2);
 
 		sb.append("{");
 
@@ -1172,7 +1092,7 @@ public class GuestbookEntryModelImpl
 			getAttributeGetterFunctions();
 
 		StringBundler sb = new StringBundler(
-			(5 * attributeGetterFunctions.size()) + 4);
+			5 * attributeGetterFunctions.size() + 4);
 
 		sb.append("<model><model-name>");
 		sb.append(getModelClassName());
@@ -1206,13 +1126,20 @@ public class GuestbookEntryModelImpl
 
 	private long _mvccVersion;
 	private String _uuid;
+	private String _originalUuid;
 	private long _entryId;
 	private String _name;
 	private String _email;
 	private String _message;
 	private long _guestbookId;
+	private long _originalGuestbookId;
+	private boolean _setOriginalGuestbookId;
 	private long _groupId;
+	private long _originalGroupId;
+	private boolean _setOriginalGroupId;
 	private long _companyId;
+	private long _originalCompanyId;
+	private boolean _setOriginalCompanyId;
 	private long _userId;
 	private String _userName;
 	private Date _createDate;
@@ -1222,113 +1149,6 @@ public class GuestbookEntryModelImpl
 	private long _statusByUserId;
 	private String _statusByUserName;
 	private Date _statusDate;
-
-	public <T> T getColumnValue(String columnName) {
-		columnName = _attributeNames.getOrDefault(columnName, columnName);
-
-		Function<GuestbookEntry, Object> function =
-			_attributeGetterFunctions.get(columnName);
-
-		if (function == null) {
-			throw new IllegalArgumentException(
-				"No attribute getter function found for " + columnName);
-		}
-
-		return (T)function.apply((GuestbookEntry)this);
-	}
-
-	public <T> T getColumnOriginalValue(String columnName) {
-		if (_columnOriginalValues == null) {
-			return null;
-		}
-
-		if (_columnOriginalValues == Collections.EMPTY_MAP) {
-			_setColumnOriginalValues();
-		}
-
-		return (T)_columnOriginalValues.get(columnName);
-	}
-
-	private void _setColumnOriginalValues() {
-		_columnOriginalValues = new HashMap<String, Object>();
-
-		_columnOriginalValues.put("mvccVersion", _mvccVersion);
-		_columnOriginalValues.put("uuid_", _uuid);
-		_columnOriginalValues.put("entryId", _entryId);
-		_columnOriginalValues.put("name", _name);
-		_columnOriginalValues.put("email", _email);
-		_columnOriginalValues.put("message", _message);
-		_columnOriginalValues.put("guestbookId", _guestbookId);
-		_columnOriginalValues.put("groupId", _groupId);
-		_columnOriginalValues.put("companyId", _companyId);
-		_columnOriginalValues.put("userId", _userId);
-		_columnOriginalValues.put("userName", _userName);
-		_columnOriginalValues.put("createDate", _createDate);
-		_columnOriginalValues.put("modifiedDate", _modifiedDate);
-		_columnOriginalValues.put("status", _status);
-		_columnOriginalValues.put("statusByUserId", _statusByUserId);
-		_columnOriginalValues.put("statusByUserName", _statusByUserName);
-		_columnOriginalValues.put("statusDate", _statusDate);
-	}
-
-	private static final Map<String, String> _attributeNames;
-
-	static {
-		Map<String, String> attributeNames = new HashMap<>();
-
-		attributeNames.put("uuid_", "uuid");
-
-		_attributeNames = Collections.unmodifiableMap(attributeNames);
-	}
-
-	private transient Map<String, Object> _columnOriginalValues;
-
-	public static long getColumnBitmask(String columnName) {
-		return _columnBitmasks.get(columnName);
-	}
-
-	private static final Map<String, Long> _columnBitmasks;
-
-	static {
-		Map<String, Long> columnBitmasks = new HashMap<>();
-
-		columnBitmasks.put("mvccVersion", 1L);
-
-		columnBitmasks.put("uuid_", 2L);
-
-		columnBitmasks.put("entryId", 4L);
-
-		columnBitmasks.put("name", 8L);
-
-		columnBitmasks.put("email", 16L);
-
-		columnBitmasks.put("message", 32L);
-
-		columnBitmasks.put("guestbookId", 64L);
-
-		columnBitmasks.put("groupId", 128L);
-
-		columnBitmasks.put("companyId", 256L);
-
-		columnBitmasks.put("userId", 512L);
-
-		columnBitmasks.put("userName", 1024L);
-
-		columnBitmasks.put("createDate", 2048L);
-
-		columnBitmasks.put("modifiedDate", 4096L);
-
-		columnBitmasks.put("status", 8192L);
-
-		columnBitmasks.put("statusByUserId", 16384L);
-
-		columnBitmasks.put("statusByUserName", 32768L);
-
-		columnBitmasks.put("statusDate", 65536L);
-
-		_columnBitmasks = Collections.unmodifiableMap(columnBitmasks);
-	}
-
 	private long _columnBitmask;
 	private GuestbookEntry _escapedModel;
 
