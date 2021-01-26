@@ -9,8 +9,7 @@
         entry = GuestbookEntryLocalServiceUtil.getGuestbookEntry(entryId);
     }
 
-    long guestbookId = ParamUtil.getLong(renderRequest, "guestbookId");
-
+    long guestbookId = ParamUtil.getLong(request, "guestbookId");
 %>
 
 <portlet:renderURL var="viewURL">
