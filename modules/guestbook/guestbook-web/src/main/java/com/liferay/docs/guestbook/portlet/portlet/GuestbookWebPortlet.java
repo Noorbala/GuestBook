@@ -56,7 +56,7 @@ public class GuestbookWebPortlet extends MVCPortlet {
         long entryId = ParamUtil.getLong(request, "entryId");
 
         //===========================================================
-        System.out.println("addEntry.guestbookId = " + guestbookId);
+        //System.out.println("addEntry.guestbookId = " + guestbookId);
         //===========================================================
 
         if (entryId > 0) {
@@ -146,8 +146,8 @@ public class GuestbookWebPortlet extends MVCPortlet {
             }
 
             //==========================
-            System.out.println("groupId: " + groupId);
-            System.out.println("guestbookId: " + guestbookId);
+            //System.out.println("groupId: " + groupId);
+            //System.out.println("guestbookId: " + guestbookId);
             //==========================
 
             List<GuestbookEntry> entries = GuestbookEntryLocalServiceUtil.getGuestbookEntries(groupId,
