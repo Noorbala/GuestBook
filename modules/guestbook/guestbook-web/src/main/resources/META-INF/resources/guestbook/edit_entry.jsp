@@ -1,7 +1,6 @@
 <%@ include file="../init.jsp" %>
 
 <%
-
     long entryId = ParamUtil.getLong(renderRequest, "entryId");
 
     GuestbookEntry entry = null;
@@ -11,6 +10,7 @@
 
     long guestbookId = ParamUtil.getLong(request, "guestbookId");
 %>
+guestbookId = <%=guestbookId%>
 
 <portlet:renderURL var="viewURL">
     <portlet:param name="mvcPath" value="/guestbook/view.jsp"></portlet:param>

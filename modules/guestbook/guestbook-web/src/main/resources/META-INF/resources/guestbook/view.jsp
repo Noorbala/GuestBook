@@ -5,14 +5,14 @@
             .getAttribute("guestbookId"));
 %>
 
-<aui:button-row cssClass="guestbook-buttons">
+<%--<aui:button-row cssClass="guestbook-buttons">
     <portlet:renderURL var="addEntryURL1">
         <portlet:param name="mvcPath" value="/guestbook/edit_entry.jsp"/>
         <portlet:param name="guestbookId" value="<%=String.valueOf(guestbookId)%>"/>
     </portlet:renderURL>
 
     <aui:button onClick="${addEntryURL1}" value="Add Entry" cssClass="btn btn-primary" />
-</aui:button-row>
+</aui:button-row>--%>
 
 <%--gb= <%=guestbookId%>--%>
 <liferay-ui:search-container total="<%=GuestbookEntryLocalServiceUtil.getGuestbookEntriesCount()%>">
@@ -38,12 +38,12 @@
 
 </liferay-ui:search-container>
 
-<portlet:renderURL var="addEntryURL2">
+<portlet:renderURL var="addEntryURL">
     <portlet:param name="mvcPath" value="/guestbook/edit_entry.jsp" />
     <portlet:param name="guestbookId" value="<%=String.valueOf(guestbookId)%>"/>
 </portlet:renderURL>
 
 <aui:button-row>
-    <aui:button value="Add Entry2" onClick="<%= addEntryURL2.toString() %>"></aui:button>
+    <aui:button value="Add Entry" onClick="<%= addEntryURL.toString() %>"></aui:button>
 </aui:button-row>
 

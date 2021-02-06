@@ -27,7 +27,7 @@ import java.util.logging.Logger;
 @Component(
         immediate = true,
         property = {
-                "com.liferay.portlet.display-category=category.social",
+                "com.liferay.portlet.display-category=category.sample",
                 "com.liferay.portlet.instanceable=false",
                 "com.liferay.portlet.scopeable=true",
                 "javax.portlet.display-name=Guestbook",
@@ -56,7 +56,7 @@ public class GuestbookWebPortlet extends MVCPortlet {
         long entryId = ParamUtil.getLong(request, "entryId");
 
         //===========================================================
-        //System.out.println("addEntry.guestbookId = " + guestbookId);
+        System.out.println("addEntry.guestbookId = " + guestbookId);
         //===========================================================
 
         if (entryId > 0) {
@@ -146,14 +146,15 @@ public class GuestbookWebPortlet extends MVCPortlet {
             }
 
             //==========================
-            //System.out.println("groupId: " + groupId);
-            //System.out.println("guestbookId: " + guestbookId);
+            System.out.println("groupId: " + groupId);
+            System.out.println("guestbookId: " + guestbookId);
             //==========================
 
             List<GuestbookEntry> entries = GuestbookEntryLocalServiceUtil.getGuestbookEntries(groupId,
                     guestbookId, 0, 10);
 
             //System.out.println("size:   " + entries.size());
+
             renderRequest.setAttribute("guestbookId", guestbookId);
         } catch (Exception e) {
             throw new PortletException(e);
